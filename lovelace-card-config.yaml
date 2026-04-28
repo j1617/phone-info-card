@@ -1,0 +1,131 @@
+# ===========================================
+# Home Assistant 话费信息卡片 - 配置示例
+# ===========================================
+
+# ==========================================
+# 1. 在 Lovelace 仪表板中使用（最简单）
+# ==========================================
+# 编辑仪表板 → 添加卡片 → 选择 "话费信息卡片"
+
+type: custom:phone-info-card
+operator: 中国联通
+phone_number: 176****8888
+balance: '711.99'
+data_remaining: '20.29'
+data_used: '2.07'
+voice_remaining: '92'
+voice_used: '8'
+cost_used: '43.22'
+cycle_day: 28
+cycle_total: 30
+
+# ==========================================
+# 2. 结合传感器使用
+# ==========================================
+type: custom:phone-info-card
+entity: sensor.phone_balance
+
+# ==========================================
+# 3. 混合配置（部分来自传感器，部分手动指定）
+# ==========================================
+type: custom:phone-info-card
+entity: sensor.phone_balance
+operator: 中国联通
+phone_number: 176****8888
+
+# ==========================================
+# 4. 在 configuration.yaml 中注册资源
+# ==========================================
+lovelace:
+  resources:
+    - url: /local/phone-info-card.js
+      type: module
+
+# ==========================================
+# 5. 创建 REST 传感器示例
+# ==========================================
+sensor:
+  - platform: rest
+    name: phone_balance
+    resource: https://api.example.com/phone/balance
+    authentication: basic
+    username: your_username
+    password: your_password
+    json_attributes:
+      - balance
+      - data_remaining
+      - data_used
+      - voice_remaining
+      - voice_used
+      - cost_used
+      - operator
+      - phone_number
+    value_template: '{{ value_json.balance }}'
+    unit_of_measurement: "元"
+    scan_interval: 3600  # 每小时更新一次
+
+# ==========================================
+# 6. 创建命令行传感器示例（调用脚本获取数据）
+# ==========================================
+sensor:
+  - platform: command_line
+    name: phone_balance
+    command: "python3 /config/scripts/get_phone_balance.py"
+    json_attributes:
+      - balance
+      - data_remaining
+      - data_used
+      - voice_remaining
+      - voice_used
+      - cost_used
+    value_template: '{{ value_json.balance }}'
+    unit_of_measurement: "元"
+    scan_interval: 7200  # 每2小时更新一次
+
+# ==========================================
+# 7. 自动化定时更新
+# ==========================================
+automation:
+  - alias: "定时更新话费信息"
+    description: "每天早晚各更新一次话费信息"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+      - platform: time
+        at: "19:00:00"
+    action:
+      - service: homeassistant.update_entity
+        target:
+          entity_id: sensor.phone_balance
+
+# ==========================================
+# 8. Python 脚本示例（获取话费数据）
+# ==========================================
+# 文件路径: /config/scripts/get_phone_balance.py
+"""
+#!/usr/bin/env python3
+import json
+import requests
+
+# 示例：调用运营商API获取话费信息
+def get_phone_balance():
+    # 替换为实际的API调用
+    # response = requests.get('https://api.operator.com/balance', headers={...})
+    # data = response.json()
+    
+    # 返回示例数据
+    return {
+        "balance": "711.99",
+        "data_remaining": "20.29",
+        "data_used": "2.07",
+        "voice_remaining": "92",
+        "voice_used": "8",
+        "cost_used": "43.22",
+        "operator": "中国联通",
+        "phone_number": "176****8888"
+    }
+
+if __name__ == "__main__":
+    data = get_phone_balance()
+    print(json.dumps(data, ensure_ascii=False))
+"""
