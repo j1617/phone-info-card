@@ -1,14 +1,25 @@
-!function(t){const e=document.createElement("style");e.textContent='/* Version: 1.0.0 */',document.head.appendChild(e)}(),console.info("%c PHONE-INFO-CARD %c v1.0.0 ","color: #06b6d4; font-weight: bold; background: #1a1f2e","color: white; background: #3b82f6"),class PhoneInfoCard extends HTMLElement {
+/**
+ * Phone Info Card - Home Assistant Lovelace Custom Card
+ * Version: 1.0.1
+ * Description: Display phone balance, data, and voice usage
+ */
+
+console.info(
+  '%c PHONE-INFO-CARD %c v1.0.1 ',
+  'color: #06b6d4; font-weight: bold; background: #1a1f2e; padding: 2px 6px; border-radius: 3px 0 0 3px;',
+  'color: white; background: #3b82f6; padding: 2px 6px; border-radius: 0 3px 3px 0;'
+);
+
+class PhoneInfoCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
   }
 
   setConfig(config) {
-    if (!config.entity) {
-      throw new Error('你需要指定一个实体');
-    }
-    this.config = config;
+    // 移除强制 entity 检查，允许无 entity 配置
+    this.config = { ...config };
+    this._updateCard();
   }
 
   set hass(hass) {
@@ -16,25 +27,34 @@
     this._updateCard();
   }
 
-  _updateCard() {
-    if (!this._hass || !this.config) return;
+  connectedCallback() {
+    this._updateCard();
+  }
 
-    const entity = this._hass.states[this.config.entity];
-    const attributes = entity ? entity.attributes : {};
+  _updateCard() {
+    if (!this.config) return;
+
+    const entity = this._hass?.states?.[this.config.entity];
+    const attributes = entity?.attributes || {};
 
     // 从配置或实体属性获取数据
     const data = {
-      balance: this.config.balance || attributes.balance || '711.99',
-      dataRemaining: this.config.data_remaining || attributes.data_remaining || '20.29',
-      dataUsed: this.config.data_used || attributes.data_used || '2.07',
-      voiceRemaining: this.config.voice_remaining || attributes.voice_remaining || '92',
-      voiceUsed: this.config.voice_used || attributes.voice_used || '8',
-      costUsed: this.config.cost_used || attributes.cost_used || '43.22',
-      operator: this.config.operator || attributes.operator || '中国联通',
-      phoneNumber: this.config.phone_number || attributes.phone_number || '176****8888',
-      cycleDay: this.config.cycle_day || attributes.cycle_day || 28,
-      cycleTotal: this.config.cycle_total || attributes.cycle_total || 30,
+      balance: this.config.balance ?? attributes.balance ?? '711.99',
+      dataRemaining: this.config.data_remaining ?? attributes.data_remaining ?? '20.29',
+      dataUsed: this.config.data_used ?? attributes.data_used ?? '2.07',
+      voiceRemaining: this.config.voice_remaining ?? attributes.voice_remaining ?? '92',
+      voiceUsed: this.config.voice_used ?? attributes.voice_used ?? '8',
+      costUsed: this.config.cost_used ?? attributes.cost_used ?? '43.22',
+      operator: this.config.operator ?? attributes.operator ?? '中国联通',
+      phoneNumber: this.config.phone_number ?? attributes.phone_number ?? '176****8888',
+      cycleDay: this.config.cycle_day ?? attributes.cycle_day ?? 28,
+      cycleTotal: this.config.cycle_total ?? attributes.cycle_total ?? 30,
     };
+
+    // 计算进度条百分比
+    const dataTotal = parseFloat(data.dataRemaining) + parseFloat(data.dataUsed) || 22.36;
+    const voiceTotal = parseFloat(data.voiceRemaining) + parseFloat(data.voiceUsed) || 100;
+    const costTotal = parseFloat(data.balance) + parseFloat(data.costUsed) || 755.21;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -268,7 +288,6 @@
       <ha-card>
         <div class="top-gradient"></div>
         <div class="card-content">
-          <!-- 头部 -->
           <div class="header">
             <div class="operator-badge">
               <div class="operator-icon">176</div>
@@ -279,7 +298,6 @@
             </div>
           </div>
           
-          <!-- 主余额 -->
           <div class="balance-section">
             <div class="balance-label">剩余话费</div>
             <div class="balance-value">
@@ -288,9 +306,7 @@
             </div>
           </div>
           
-          <!-- 数据网格 -->
           <div class="data-grid">
-            <!-- 剩余流量 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-blue">📊</div>
@@ -301,11 +317,10 @@
                 <span class="data-unit">GB</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill fill-blue" style="width: ${this._calcPercent(data.dataRemaining, 22.36)}%"></div>
+                <div class="progress-fill fill-blue" style="width: ${this._calcPercent(data.dataRemaining, dataTotal)}%"></div>
               </div>
             </div>
             
-            <!-- 剩余语音 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-purple">📞</div>
@@ -316,11 +331,10 @@
                 <span class="data-unit">分钟</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill fill-purple" style="width: ${this._calcPercent(data.voiceRemaining, 100)}%"></div>
+                <div class="progress-fill fill-purple" style="width: ${this._calcPercent(data.voiceRemaining, voiceTotal)}%"></div>
               </div>
             </div>
             
-            <!-- 已用话费 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-green">💰</div>
@@ -331,11 +345,10 @@
                 <span class="data-unit">元</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill fill-green" style="width: ${this._calcPercent(data.costUsed, 755.21)}%"></div>
+                <div class="progress-fill fill-green" style="width: ${this._calcPercent(data.costUsed, costTotal)}%"></div>
               </div>
             </div>
             
-            <!-- 已用流量 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-orange">📈</div>
@@ -346,11 +359,10 @@
                 <span class="data-unit">GB</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill fill-orange" style="width: ${this._calcPercent(data.dataUsed, 22.36)}%"></div>
+                <div class="progress-fill fill-orange" style="width: ${this._calcPercent(data.dataUsed, dataTotal)}%"></div>
               </div>
             </div>
             
-            <!-- 已用语音 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-cyan">⏱️</div>
@@ -361,11 +373,10 @@
                 <span class="data-unit">分钟</span>
               </div>
               <div class="progress-bar">
-                <div class="progress-fill fill-cyan" style="width: ${this._calcPercent(data.voiceUsed, 100)}%"></div>
+                <div class="progress-fill fill-cyan" style="width: ${this._calcPercent(data.voiceUsed, voiceTotal)}%"></div>
               </div>
             </div>
             
-            <!-- 套餐周期 -->
             <div class="data-item">
               <div class="data-header">
                 <div class="data-icon icon-pink">📅</div>
@@ -381,7 +392,6 @@
             </div>
           </div>
           
-          <!-- 底部 -->
           <div class="footer">
             <div class="update-time">
               <span class="status-dot"></span>
@@ -406,7 +416,6 @@
 
   static getStubConfig() {
     return {
-      entity: 'sensor.phone_balance',
       operator: '中国联通',
       phone_number: '176****8888',
       balance: '711.99',
@@ -415,16 +424,22 @@
       voice_remaining: '92',
       voice_used: '8',
       cost_used: '43.22',
+      cycle_day: 28,
+      cycle_total: 30,
     };
   }
 }
 
-customElements.define('phone-info-card', PhoneInfoCard);
+// 注册自定义元素
+if (!customElements.get('phone-info-card')) {
+  customElements.define('phone-info-card', PhoneInfoCard);
+}
 
-// 注册到卡片选择器
+// 注册到 Home Assistant 卡片选择器
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'phone-info-card',
   name: '话费信息卡片',
   description: '显示手机话费、流量、语音使用情况的卡片',
+  documentationURL: 'https://github.com/your-repo/phone-info-card',
 });

@@ -1,12 +1,12 @@
 # Home Assistant 话费信息卡片
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz/)
-[![version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-repo/phone-info-card)
+[![version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/your-repo/phone-info-card)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 一个漂亮的 Home Assistant Lovelace 自定义卡片，用于显示手机话费、流量、语音使用情况。
 
-**当前版本: v1.0.0**
+**当前版本: v1.0.1**
 
 ## 预览效果
 
