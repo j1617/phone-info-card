@@ -1,5 +1,9 @@
 # Home Assistant 话费信息卡片
 
+HA插件交流QQ群： 754364399
+
+关注公众号【工具箱达人】，里面有详细的使用教程
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz/)
 [![version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/your-repo/phone-info-card)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
