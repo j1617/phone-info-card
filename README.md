@@ -1,12 +1,12 @@
 # Home Assistant 话费信息卡片
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz/)
-[![version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/your-repo/phone-info-card)
+[![version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/your-repo/phone-info-card)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 一个漂亮的 Home Assistant Lovelace 自定义卡片，用于显示手机话费、流量、语音使用情况。
 
-**当前版本: v1.0.1**
+**当前版本: v1.1.0**
 
 ## 预览效果
 
@@ -67,40 +67,102 @@ cycle_day: 28
 cycle_total: 30
 ```
 
-#### 结合传感器使用
+#### 绑定传感器实体（推荐，实时更新）
+
+Lovelace YAML **不支持** `{{ states('sensor.xxx') }}` 模板语法。
+使用 `xxx_entity` 配置项绑定传感器实体即可实时显示值：
 
 ```yaml
 type: custom:phone-info-card
-entity: sensor.phone_balance
+operator: 中国联通
+phone_number: 176****8888
+balance_entity: sensor.176sheng_yu_hua_fei
+data_remaining_entity: sensor.176sheng_yu_liu_liang
+data_used_entity: sensor.176yi_yong_liu_liang
+voice_remaining_entity: sensor.176sheng_yu_yu_yin
+voice_used_entity: sensor.176yi_yong_yu_yin
+cost_used_entity: sensor.176yi_yong_hua_fei
+cycle_day: 28
+cycle_total: 30
 ```
 
-如果你的传感器包含以下属性，卡片会自动读取：
-- `balance` - 剩余话费
-- `data_remaining` - 剩余流量（GB）
-- `data_used` - 已用流量（GB）
-- `voice_remaining` - 剩余语音（分钟）
-- `voice_used` - 已用语音（分钟）
-- `cost_used` - 已用话费（元）
-- `operator` - 运营商
-- `phone_number` - 手机号
-- `cycle_day` - 套餐已用天数
-- `cycle_total` - 套餐总天数
+也可以混合使用（部分绑定实体，部分写死）：
+
+```yaml
+type: custom:phone-info-card
+operator: 中国联通
+phone_number: 176****8888
+balance_entity: sensor.176sheng_yu_hua_fei
+voice_remaining: '92'
+voice_used: '8'
+```
+
+#### 自定义颜色
+
+```yaml
+type: custom:phone-info-card
+operator: 中国联通
+phone_number: 176****8888
+balance_entity: sensor.176sheng_yu_hua_fei
+# 样式自定义
+background_color: '#ffffff'        # 卡片主背景
+text_color: '#1e293b'              # 主文字颜色
+secondary_color: '#64748b'        # 次要文字颜色
+accent_color: '#3b82f6'            # 强调色（货币符号等）
+card_background: '#f1f5f9'        # 子卡片/余额区背景
+header_background: 'linear-gradient(135deg, #3b82f6, #06b6d4)'  # 顶部渐变
+```
+
+深色主题示例：
+
+```yaml
+type: custom:phone-info-card
+operator: 中国联通
+phone_number: 176****8888
+balance_entity: sensor.176sheng_yu_hua_fei
+background_color: '#1a1f2e'
+text_color: '#f1f5f9'
+secondary_color: '#94a3b8'
+accent_color: '#06b6d4'
+card_background: '#232b3a'
+header_background: 'linear-gradient(135deg, #3b82f6, #06b6d4)'
+```
 
 ## 配置选项
 
+### 数据配置
+
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `entity` | string | 否 | - | 传感器实体 ID |
 | `operator` | string | 否 | 中国联通 | 运营商名称 |
 | `phone_number` | string | 否 | 176****8888 | 手机号码（脱敏显示） |
 | `balance` | string | 否 | 711.99 | 剩余话费（元） |
+| `balance_entity` | string | 否 | - | 剩余话费传感器实体 ID |
 | `data_remaining` | string | 否 | 20.29 | 剩余流量（GB） |
+| `data_remaining_entity` | string | 否 | - | 剩余流量传感器实体 ID |
 | `data_used` | string | 否 | 2.07 | 已用流量（GB） |
+| `data_used_entity` | string | 否 | - | 已用流量传感器实体 ID |
 | `voice_remaining` | string | 否 | 92 | 剩余语音（分钟） |
+| `voice_remaining_entity` | string | 否 | - | 剩余语音传感器实体 ID |
 | `voice_used` | string | 否 | 8 | 已用语音（分钟） |
+| `voice_used_entity` | string | 否 | - | 已用语音传感器实体 ID |
 | `cost_used` | string | 否 | 43.22 | 已用话费（元） |
+| `cost_used_entity` | string | 否 | - | 已用话费传感器实体 ID |
 | `cycle_day` | number | 否 | 28 | 套餐周期已用天数 |
 | `cycle_total` | number | 否 | 30 | 套餐周期总天数 |
+
+> 💡 **提示**: 优先使用 `xxx_entity` 绑定传感器，数据会实时同步。直接写值则显示固定内容。
+
+### 样式配置
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `background_color` | string | #ffffff | 卡片主背景色 |
+| `text_color` | string | #1e293b | 主文字颜色 |
+| `secondary_color` | string | #64748b | 次要文字颜色（标签等） |
+| `accent_color` | string | #3b82f6 | 强调色（货币符号） |
+| `card_background` | string | #f8fafc | 子卡片背景（余额区、数据卡片） |
+| `header_background` | string | linear-gradient(135deg, #3b82f6, #06b6d4) | 顶部渐变/CSS 渐变 |
 
 ## 创建传感器示例
 
@@ -181,13 +243,13 @@ automation:
 
 ## 特性
 
-- 🎨 现代深色主题设计
+- 🎨 现代设计，默认浅色主题
 - 🌈 渐变色彩系统
 - 📊 进度条可视化
 - 📱 响应式布局
-- ✨ 平滑动画效果
-- 🔌 支持传感器集成
+- 🔌 支持传感器实体绑定（实时更新）
 - ⚙️ 支持手动配置
+- 🎨 支持自定义背景/文字颜色
 
 ## 故障排除
 

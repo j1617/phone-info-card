@@ -1,12 +1,12 @@
 /**
  * Phone Info Card - Home Assistant Lovelace Custom Card
- * Version: 1.0.1
+ * Version: 1.1.0
  * Description: Display phone balance, data, and voice usage
  */
 
 console.info(
-  '%c PHONE-INFO-CARD %c v1.0.1 ',
-  'color: #06b6d4; font-weight: bold; background: #1a1f2e; padding: 2px 6px; border-radius: 3px 0 0 3px;',
+  '%c PHONE-INFO-CARD %c v1.1.0 ',
+  'color: #3b82f6; font-weight: bold; background: #e0e7ff; padding: 2px 6px; border-radius: 3px 0 0 3px;',
   'color: white; background: #3b82f6; padding: 2px 6px; border-radius: 0 3px 3px 0;'
 );
 
@@ -17,7 +17,6 @@ class PhoneInfoCard extends HTMLElement {
   }
 
   setConfig(config) {
-    // 移除强制 entity 检查，允许无 entity 配置
     this.config = { ...config };
     this._updateCard();
   }
@@ -31,30 +30,65 @@ class PhoneInfoCard extends HTMLElement {
     this._updateCard();
   }
 
+  _getValue(key, entityKey) {
+    // 优先使用 entity 配置获取实时值
+    if (this.config[entityKey] && this._hass) {
+      const entity = this._hass.states[this.config[entityKey]];
+      if (entity) {
+        return entity.state;
+      }
+    }
+    // 其次使用直接配置的值
+    return this.config[key] ?? this._getDefault(key);
+  }
+
+  _getDefault(key) {
+    const defaults = {
+      balance: '711.99',
+      dataRemaining: '20.29',
+      dataUsed: '2.07',
+      voiceRemaining: '92',
+      voiceUsed: '8',
+      costUsed: '43.22',
+      operator: '中国联通',
+      phoneNumber: '176****8888',
+      cycleDay: 28,
+      cycleTotal: 30,
+    };
+    return defaults[key] ?? '';
+  }
+
   _updateCard() {
     if (!this.config) return;
 
-    const entity = this._hass?.states?.[this.config.entity];
-    const attributes = entity?.attributes || {};
-
-    // 从配置或实体属性获取数据
+    // 从配置或实体获取数据
     const data = {
-      balance: this.config.balance ?? attributes.balance ?? '711.99',
-      dataRemaining: this.config.data_remaining ?? attributes.data_remaining ?? '20.29',
-      dataUsed: this.config.data_used ?? attributes.data_used ?? '2.07',
-      voiceRemaining: this.config.voice_remaining ?? attributes.voice_remaining ?? '92',
-      voiceUsed: this.config.voice_used ?? attributes.voice_used ?? '8',
-      costUsed: this.config.cost_used ?? attributes.cost_used ?? '43.22',
-      operator: this.config.operator ?? attributes.operator ?? '中国联通',
-      phoneNumber: this.config.phone_number ?? attributes.phone_number ?? '176****8888',
-      cycleDay: this.config.cycle_day ?? attributes.cycle_day ?? 28,
-      cycleTotal: this.config.cycle_total ?? attributes.cycle_total ?? 30,
+      balance: this._getValue('balance', 'balance_entity'),
+      dataRemaining: this._getValue('data_remaining', 'data_remaining_entity'),
+      dataUsed: this._getValue('data_used', 'data_used_entity'),
+      voiceRemaining: this._getValue('voice_remaining', 'voice_remaining_entity'),
+      voiceUsed: this._getValue('voice_used', 'voice_used_entity'),
+      costUsed: this._getValue('cost_used', 'cost_used_entity'),
+      operator: this.config.operator ?? this._getDefault('operator'),
+      phoneNumber: this.config.phone_number ?? this._getDefault('phoneNumber'),
+      cycleDay: this.config.cycle_day ?? this._getDefault('cycleDay'),
+      cycleTotal: this.config.cycle_total ?? this._getDefault('cycleTotal'),
     };
 
     // 计算进度条百分比
     const dataTotal = parseFloat(data.dataRemaining) + parseFloat(data.dataUsed) || 22.36;
     const voiceTotal = parseFloat(data.voiceRemaining) + parseFloat(data.voiceUsed) || 100;
     const costTotal = parseFloat(data.balance) + parseFloat(data.costUsed) || 755.21;
+
+    // 样式配置
+    const styles = {
+      bg: this.config.background_color || '#ffffff',
+      text: this.config.text_color || '#1e293b',
+      secondary: this.config.secondary_color || '#64748b',
+      accent: this.config.accent_color || '#3b82f6',
+      cardBg: this.config.card_background || '#f8fafc',
+      headerBg: this.config.header_background || 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+    };
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -63,22 +97,23 @@ class PhoneInfoCard extends HTMLElement {
         }
         
         ha-card {
-          background: var(--ha-card-background, var(--paper-card-background-color, #1a1f2e));
+          background: ${styles.bg};
           border-radius: var(--ha-card-border-radius, 16px);
-          box-shadow: var(--ha-card-box-shadow, 0 4px 20px rgba(0,0,0,0.3));
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
           overflow: hidden;
           position: relative;
         }
         
         .card-content {
           padding: 20px;
-          font-family: var(--paper-font-body1_-_font-family), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          color: ${styles.text};
         }
         
         /* 顶部装饰线 */
         .top-gradient {
-          height: 3px;
-          background: linear-gradient(90deg, #3b82f6, #06b6d4, #a855f7);
+          height: 4px;
+          background: ${styles.headerBg};
         }
         
         /* 头部 */
@@ -96,46 +131,47 @@ class PhoneInfoCard extends HTMLElement {
         }
         
         .operator-icon {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(135deg, #3b82f6, #06b6d4);
+          width: 46px;
+          height: 46px;
+          background: ${styles.headerBg};
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 700;
           color: white;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
         }
         
         .operator-info h3 {
           margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--primary-text-color, #f1f5f9);
+          font-size: 18px;
+          font-weight: 700;
+          color: ${styles.text};
         }
         
         .operator-info span {
-          font-size: 12px;
-          color: var(--secondary-text-color, #94a3b8);
+          font-size: 13px;
+          color: ${styles.secondary};
         }
         
         /* 主余额 */
         .balance-section {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(6, 182, 212, 0.08));
+          background: ${styles.cardBg};
           border-radius: 14px;
-          padding: 18px;
+          padding: 20px;
           margin-bottom: 16px;
-          border: 1px solid rgba(59, 130, 246, 0.2);
+          border: 1px solid rgba(0, 0, 0, 0.06);
         }
         
         .balance-label {
-          font-size: 12px;
-          color: var(--secondary-text-color, #94a3b8);
+          font-size: 13px;
+          color: ${styles.secondary};
           text-transform: uppercase;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.05em;
           margin-bottom: 8px;
+          font-weight: 500;
         }
         
         .balance-value {
@@ -145,39 +181,35 @@ class PhoneInfoCard extends HTMLElement {
         }
         
         .balance-currency {
-          font-size: 22px;
-          color: #06b6d4;
-          font-weight: 500;
+          font-size: 24px;
+          color: ${styles.accent};
+          font-weight: 600;
         }
         
         .balance-amount {
-          font-size: 42px;
-          font-weight: 700;
-          color: var(--primary-text-color, #f1f5f9);
-          background: linear-gradient(135deg, var(--primary-text-color, #f1f5f9), #06b6d4);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          font-size: 44px;
+          font-weight: 800;
+          color: ${styles.text};
         }
         
         /* 数据网格 */
         .data-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
+          gap: 12px;
         }
         
         .data-item {
-          background: rgba(255, 255, 255, 0.03);
+          background: ${styles.cardBg};
           border-radius: 12px;
           padding: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          transition: all 0.3s ease;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          transition: all 0.2s ease;
         }
         
         .data-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
         }
         
         .data-header {
@@ -188,37 +220,38 @@ class PhoneInfoCard extends HTMLElement {
         }
         
         .data-icon {
-          width: 26px;
-          height: 26px;
+          width: 28px;
+          height: 28px;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 13px;
+          font-size: 14px;
         }
         
         .data-label {
-          font-size: 11px;
-          color: var(--secondary-text-color, #94a3b8);
-          font-weight: 500;
+          font-size: 12px;
+          color: ${styles.secondary};
+          font-weight: 600;
         }
         
         .data-value {
-          font-size: 20px;
+          font-size: 22px;
           font-weight: 700;
-          color: var(--primary-text-color, #f1f5f9);
+          color: ${styles.text};
         }
         
         .data-unit {
           font-size: 12px;
-          color: var(--secondary-text-color, #94a3b8);
+          color: ${styles.secondary};
           margin-left: 2px;
+          font-weight: 500;
         }
         
         .progress-bar {
           margin-top: 8px;
-          height: 3px;
-          background: rgba(255, 255, 255, 0.1);
+          height: 4px;
+          background: rgba(0, 0, 0, 0.08);
           border-radius: 2px;
           overflow: hidden;
         }
@@ -226,16 +259,16 @@ class PhoneInfoCard extends HTMLElement {
         .progress-fill {
           height: 100%;
           border-radius: 2px;
-          transition: width 0.8s ease;
+          transition: width 0.6s ease;
         }
         
         /* 颜色主题 */
-        .icon-blue { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-        .icon-purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
-        .icon-green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .icon-orange { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-        .icon-cyan { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
-        .icon-pink { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        .icon-blue { background: rgba(59, 130, 246, 0.15); }
+        .icon-purple { background: rgba(168, 85, 247, 0.15); }
+        .icon-green { background: rgba(16, 185, 129, 0.15); }
+        .icon-orange { background: rgba(245, 158, 11, 0.15); }
+        .icon-cyan { background: rgba(6, 182, 212, 0.15); }
+        .icon-pink { background: rgba(236, 72, 153, 0.15); }
         
         .fill-blue { background: #3b82f6; }
         .fill-purple { background: #a855f7; }
@@ -248,7 +281,7 @@ class PhoneInfoCard extends HTMLElement {
         .footer {
           margin-top: 16px;
           padding-top: 14px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -259,7 +292,7 @@ class PhoneInfoCard extends HTMLElement {
           display: flex;
           align-items: center;
           gap: 6px;
-          color: var(--secondary-text-color, #94a3b8);
+          color: ${styles.secondary};
         }
         
         .status-dot {
@@ -267,12 +300,6 @@ class PhoneInfoCard extends HTMLElement {
           height: 8px;
           background: #10b981;
           border-radius: 50%;
-          animation: pulse 2s ease-in-out infinite;
-        }
-        
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
         }
         
         @media (max-width: 400px) {
